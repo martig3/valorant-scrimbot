@@ -9,7 +9,9 @@ use serenity::model::channel::{Message, ReactionType};
 use serenity::model::guild::GuildContainer;
 use serenity::model::id::EmojiId;
 use serenity::model::user::User;
+use serenity::prelude::TypeMap;
 use serenity::utils::MessageBuilder;
+use tokio::sync::RwLockWriteGuard;
 
 use crate::{BotState, Config, Draft, Maps, ReadyQueue, RiotIdCache, State, StateContainer, TeamNameCache, UserQueue};
 
@@ -25,8 +27,7 @@ pub(crate) async fn handle_join(context: &Context, msg: &Message, author: &User)
         let response = MessageBuilder::new()
             .mention(author)
             .push(" riotid not found for your discord user, \
-                    please use `.riotid <your riotid>` to assign one. Example: `.riotid STEAM_0:1:12345678` ")
-            .push("\nhttps://riotid.io/ is an easy way to find your riotid for your account")
+                    please use `.riotid <your riotid>` to assign one. Example: `.riotid Martige#NA1`")
             .build();
         if let Err(why) = msg.channel_id.say(&context.http, &response).await {
             println!("Error sending message: {:?}", why);
@@ -185,16 +186,16 @@ pub(crate) async fn handle_start(context: Context, msg: Message) {
         send_simple_tagged_msg(&context, &msg, " users that are not in the queue cannot start the match", &msg.author).await;
         return;
     }
-    if user_queue.len() != 10 {
-        let response = MessageBuilder::new()
-            .mention(&msg.author)
-            .push(" the queue is not full yet")
-            .build();
-        if let Err(why) = msg.channel_id.say(&context.http, &response).await {
-            println!("Error sending message: {:?}", why);
-        }
-        return;
-    }
+    // if user_queue.len() != 10 {
+    //     let response = MessageBuilder::new()
+    //         .mention(&msg.author)
+    //         .push(" the queue is not full yet")
+    //         .build();
+    //     if let Err(why) = msg.channel_id.say(&context.http, &response).await {
+    //         println!("Error sending message: {:?}", why);
+    //     }
+    //     return;
+    // }
     let user_queue_mention: String = user_queue
         .iter()
         .map(|user| format!("- <@{}>\n", user.id))
@@ -432,64 +433,45 @@ pub(crate) async fn list_unpicked(user_queue: &Vec<User>, draft: &Draft, context
     }
 }
 
-pub(crate) async fn list_teams(draft: &Draft, context: &Context, msg: &Message, team_a_name: &String, team_b_name: &String) {
-    let mut data = context.data.write().await;
-    let riot_id_cache: &mut HashMap<u64, String> = &mut data.get_mut::<RiotIdCache>().unwrap();
-    let team_a: String = draft.team_a
-        .iter()
-        .map(|user| format!("- @{}: {}\n", &user.name, riot_id_cache.get(user.id.as_u64()).unwrap()))
-        .collect();
-    let team_b: String = draft.team_b
-        .iter()
-        .map(|user| format!("- @{}: {}\n", &user.name, riot_id_cache.get(user.id.as_u64()).unwrap()))
-        .collect();
-    let response = MessageBuilder::new()
-        .push_bold_line(format!("Team {}:", team_a_name))
-        .push_line(team_a)
-        .push_bold_line(format!("Team {}:", team_b_name))
-        .push_line(team_b)
-        .build();
-
-    if let Err(why) = msg.channel_id.say(&context.http, &response).await {
-        println!("Error sending message: {:?}", why);
-    }
-}
-
 pub(crate) async fn handle_defense_option(context: Context, msg: Message) {
-    let mut data = context.data.write().await;
-    let bot_state: &mut StateContainer = &mut data.get_mut::<BotState>().unwrap();
-    if bot_state.state != State::SidePick {
-        send_simple_tagged_msg(&context, &msg, " it is not currently the side pick phase", &msg.author).await;
-        return;
+    {
+        let mut data: RwLockWriteGuard<TypeMap> = context.data.write().await;
+        let bot_state: &mut StateContainer = &mut data.get_mut::<BotState>().unwrap();
+        if bot_state.state != State::SidePick {
+            send_simple_tagged_msg(&context, &msg, " it is not currently the side pick phase", &msg.author).await;
+            return;
+        }
+        let draft: &mut Draft = &mut data.get_mut::<Draft>().unwrap();
+        if &msg.author != draft.captain_b.as_ref().unwrap() {
+            send_simple_tagged_msg(&context, &msg, " you are not Captain B", &msg.author).await;
+            return;
+        }
+        draft.team_b_start_side = String::from("ct");
+        let bot_state: &mut StateContainer = &mut data.get_mut::<BotState>().unwrap();
+        bot_state.state = State::Ready;
+        send_simple_msg(&context, &msg, "Setup is completed.").await;
     }
-    let draft: &mut Draft = &mut data.get_mut::<Draft>().unwrap();
-    if &msg.author != draft.captain_b.as_ref().unwrap() {
-        send_simple_tagged_msg(&context, &msg, " you are not Captain B", &msg.author).await;
-        return;
-    }
-    draft.team_b_start_side = String::from("ct");
-    let bot_state: &mut StateContainer = &mut data.get_mut::<BotState>().unwrap();
-    bot_state.state = State::Ready;
-    send_simple_msg(&context, &msg, "Setup is completed.").await;
     handle_ready(&context, &msg).await;
 }
 
 pub(crate) async fn handle_attack_option(context: Context, msg: Message) {
-    let mut data = context.data.write().await;
-    let bot_state: &mut StateContainer = &mut data.get_mut::<BotState>().unwrap();
-    if bot_state.state != State::SidePick {
-        send_simple_tagged_msg(&context, &msg, " it is not currently the side pick phase", &msg.author).await;
-        return;
+    {
+        let mut data = context.data.write().await;
+        let bot_state: &mut StateContainer = &mut data.get_mut::<BotState>().unwrap();
+        if bot_state.state != State::SidePick {
+            send_simple_tagged_msg(&context, &msg, " it is not currently the side pick phase", &msg.author).await;
+            return;
+        }
+        let draft: &mut Draft = &mut data.get_mut::<Draft>().unwrap();
+        if &msg.author != draft.captain_b.as_ref().unwrap() {
+            send_simple_tagged_msg(&context, &msg, " you are not Captain B", &msg.author).await;
+            return;
+        }
+        draft.team_b_start_side = String::from("t");
+        let bot_state: &mut StateContainer = &mut data.get_mut::<BotState>().unwrap();
+        bot_state.state = State::Ready;
+        send_simple_msg(&context, &msg, "Setup is completed.").await;
     }
-    let draft: &mut Draft = &mut data.get_mut::<Draft>().unwrap();
-    if &msg.author != draft.captain_b.as_ref().unwrap() {
-        send_simple_tagged_msg(&context, &msg, " you are not Captain B", &msg.author).await;
-        return;
-    }
-    draft.team_b_start_side = String::from("t");
-    let bot_state: &mut StateContainer = &mut data.get_mut::<BotState>().unwrap();
-    bot_state.state = State::Ready;
-    send_simple_msg(&context, &msg, "Setup is completed.").await;
     handle_ready(&context, &msg).await;
 }
 
@@ -511,7 +493,7 @@ pub(crate) async fn handle_riotid(context: Context, msg: Message) {
     riot_id_cache.insert(*msg.author.id.as_u64(), String::from(&riot_id_str));
     write_to_file(String::from("riot_ids.json"), serde_json::to_string(riot_id_cache).unwrap()).await;
     let response = MessageBuilder::new()
-        .push("Updated riotid for ")
+        .push("Updated Riot id for ")
         .mention(&msg.author)
         .push(" to `")
         .push(&riot_id_str)
@@ -653,13 +635,31 @@ pub(crate) async fn write_to_file(path: String, content: String) {
 
 pub(crate) async fn handle_ready(context: &Context, msg: &Message) {
     let mut data = context.data.write().await;
-    let draft: &Draft = &data.get::<Draft>().unwrap();
+    let draft: &Draft = &data.get::<Draft>().unwrap().clone();
+    let riot_id_cache: &HashMap<u64, String> = &data.get::<RiotIdCache>().unwrap().clone();
     let teamname_cache = data.get::<TeamNameCache>().unwrap();
     let team_a_name = teamname_cache.get(draft.captain_a.as_ref().unwrap().id.as_u64())
         .unwrap_or(&draft.captain_a.as_ref().unwrap().name);
     let team_b_name = teamname_cache.get(draft.captain_b.as_ref().unwrap().id.as_u64())
         .unwrap_or(&draft.captain_b.as_ref().unwrap().name);
-    list_teams(draft, &context, &msg, team_a_name, team_b_name).await;
+    let team_a: String = draft.team_a
+        .iter()
+        .map(|user| format!("- @{}: {}\n", &user.name, riot_id_cache.get(user.id.as_u64()).unwrap()))
+        .collect();
+    let team_b: String = draft.team_b
+        .iter()
+        .map(|user| format!("- @{}: {}\n", &user.name, riot_id_cache.get(user.id.as_u64()).unwrap()))
+        .collect();
+    let response = MessageBuilder::new()
+        .push_bold_line(format!("Team {}:", team_a_name))
+        .push_line(team_a)
+        .push_bold_line(format!("Team {}:", team_b_name))
+        .push_line(team_b)
+        .build();
+
+    if let Err(why) = msg.channel_id.say(&context.http, &response).await {
+        println!("Error sending message: {:?}", why);
+    }
     let config: &Config = &data.get::<Config>().unwrap();
     for user in &draft.team_a {
         if let Some(guild) = &msg.guild(&context.cache).await {

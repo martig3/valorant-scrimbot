@@ -143,8 +143,8 @@ _These are commands used during the `.start` process:_
 _These are privileged admin commands:_
 `.start` - Start the match setup process
 `.kick` - Kick a player by mentioning them i.e. `.kick @user`
-`.addmap` - Add a map to the map vote i.e. `.addmap de_dust2` _Note: map must be present on the server or the server will not start._
-`.removemap` - Remove a map from the map vote i.e. `.removemap de_dust2`
+`.addmap` - Add a map to the map vote i.e. `.addmap mapname` _Note: map must be present on the server or the server will not start._
+`.removemap` - Remove a map from the map vote i.e. `.removemap mapname`
 `.recoverqueue` - Manually set a queue, tag all users to add after the command
 `.clear` - Clear the queue
 `.cancel` - Cancels `.start` process

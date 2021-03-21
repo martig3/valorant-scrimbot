@@ -134,14 +134,10 @@ pub(crate) async fn handle_help(context: Context, msg: Message) {
 `.list` - List all users in the queue
 `.riotid` - Set your riotid i.e. `.riotid STEAM_0:1:12345678`
 `.maps` - Lists all maps in available for play
-`.stats` - Lists all available statistics for user. Add ` Xm` to display past X months where X is a single digit integer. Add `.top10` to display top 10 ranking with an optional `.top10 Xm` month filter.
 `.teamname` - Sets a custom team name when you are a captain i.e. `.teamname TeamName`
 _These are commands used during the `.start` process:_
 `.captain` - Add yourself as a captain.
 `.pick` - If you are a captain, this is used to pick a player
-`.ready` - After the draft phase is completed, use this to ready up
-`.unready` - After the draft phase is completed, use this to cancel your `.ready` status
-`.readylist` - Lists players not readied up
 ");
     let admin_commands = String::from("
 _These are privileged admin commands:_

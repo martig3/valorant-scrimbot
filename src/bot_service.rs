@@ -13,7 +13,7 @@ use serenity::prelude::TypeMap;
 use serenity::utils::MessageBuilder;
 use tokio::sync::RwLockWriteGuard;
 
-use crate::{BotState, Config, Draft, Maps, ReadyQueue, RiotIdCache, State, StateContainer, TeamNameCache, UserQueue};
+use crate::{BotState, Config, Draft, Maps, QueueMessages, RiotIdCache, State, StateContainer, TeamNameCache, UserQueue};
 
 struct ReactionResult {
     count: u64,
@@ -35,20 +35,20 @@ pub(crate) async fn handle_join(context: &Context, msg: &Message, author: &User)
         return;
     }
     let user_queue: &mut Vec<User> = &mut data.get_mut::<UserQueue>().unwrap();
-    if user_queue.len() >= 10 {
+    if user_queue.contains(&author) {
         let response = MessageBuilder::new()
             .mention(author)
-            .push(" sorry but the queue is full.")
+            .push(" is already in the queue.")
             .build();
         if let Err(why) = msg.channel_id.say(&context.http, &response).await {
             println!("Error sending message: {:?}", why);
         }
         return;
     }
-    if user_queue.contains(&author) {
+    if user_queue.len() >= 10 {
         let response = MessageBuilder::new()
             .mention(author)
-            .push(" is already in the queue.")
+            .push(" sorry but the queue is full.")
             .build();
         if let Err(why) = msg.channel_id.say(&context.http, &response).await {
             println!("Error sending message: {:?}", why);
@@ -64,6 +64,15 @@ pub(crate) async fn handle_join(context: &Context, msg: &Message, author: &User)
         .build();
     if let Err(why) = msg.channel_id.say(&context.http, &response).await {
         println!("Error sending message: {:?}", why);
+    }
+    let queued_msgs: &mut HashMap<u64, String> = data.get_mut::<QueueMessages>().unwrap();
+    let start_byte = &msg.content.find("\"");
+    let end_byte = &msg.content.rfind("\"");
+    if start_byte.is_some() && (end_byte.is_some() && (end_byte.unwrap() != start_byte.unwrap())) {
+        let start = start_byte.unwrap();
+        let mut end = end_byte.unwrap();
+        end = end.min(start + 50);
+        queued_msgs.insert(*msg.author.id.as_u64(), String::from(&msg.content[start + 1..end]));
     }
 }
 
@@ -96,12 +105,23 @@ pub(crate) async fn handle_leave(context: Context, msg: Message) {
     if let Err(why) = msg.channel_id.say(&context.http, &response).await {
         println!("Error sending message: {:?}", why);
     }
+    let queued_msgs: &mut HashMap<u64, String> = data.get_mut::<QueueMessages>().unwrap();
+    if queued_msgs.get(&msg.author.id.as_u64()).is_some() {
+        queued_msgs.remove(&msg.author.id.as_u64());
+    }
 }
 
 pub(crate) async fn handle_list(context: Context, msg: Message) {
     let data = context.data.write().await;
     let user_queue: &Vec<User> = data.get::<UserQueue>().unwrap();
-    let user_name: String = user_queue.iter().map(|user| format!("\n- @{}", user.name)).collect();
+    let queue_msgs: &HashMap<u64, String> = data.get::<QueueMessages>().unwrap();
+    let mut user_name = String::new();
+    for u in user_queue {
+        user_name.push_str(format!("\n- @{}", u.name).as_str());
+        if let Some(value) = queue_msgs.get(u.id.as_u64()) {
+            user_name.push_str(format!(": `{}`", value).as_str());
+        }
+    }
     let response = MessageBuilder::new()
         .push("Current queue size: ")
         .push(&user_queue.len())
@@ -130,12 +150,12 @@ pub(crate) async fn handle_clear(context: Context, msg: Message) {
 
 pub(crate) async fn handle_help(context: Context, msg: Message) {
     let mut commands = String::from("
-`.join` - Join the queue
+`.join` - Join the queue, add a message in quotes (max 50 char) i.e. `.join \"available at 9pm\"`
 `.leave` - Leave the queue
 `.list` - List all users in the queue
-`.riotid` - Set your riotid i.e. `.riotid STEAM_0:1:12345678`
-`.maps` - Lists all maps in available for play
-`.teamname` - Sets a custom team name when you are a captain i.e. `.teamname TeamName`
+`.riotid` - Set your riotid i.e. `.riotid Martige#NA1`
+`.maps` - Lists all maps available for map vote
+`.teamname` - Sets a custom team name when you are a captain i.e. `.teamname Your Team Name`
 _These are commands used during the `.start` process:_
 `.captain` - Add yourself as a captain.
 `.pick` - If you are a captain, this is used to pick a player
@@ -144,11 +164,11 @@ _These are commands used during the `.start` process:_
 _These are privileged admin commands:_
 `.start` - Start the match setup process
 `.kick` - Kick a player by mentioning them i.e. `.kick @user`
-`.addmap` - Add a map to the map vote i.e. `.addmap mapname` _Note: map must be present on the server or the server will not start._
+`.addmap` - Add a map to the map vote i.e. `.addmap mapname`
 `.removemap` - Remove a map from the map vote i.e. `.removemap mapname`
 `.recoverqueue` - Manually set a queue, tag all users to add after the command
 `.clear` - Clear the queue
-`.cancel` - Cancels `.start` process
+`.cancel` - Cancels `.start` process & retains current queue
     ");
     if admin_check(&context, &msg, false).await {
         commands.push_str(&admin_commands)
@@ -156,8 +176,12 @@ _These are privileged admin commands:_
     let response = MessageBuilder::new()
         .push(commands)
         .build();
-    if let Err(why) = msg.channel_id.say(&context.http, &response).await {
-        println!("Error sending message: {:?}", why);
+    if let Ok(channel) = &msg.author.create_dm_channel(&context.http).await {
+        if let Err(why) = channel.say(&context.http, &response).await {
+            println!("Error sending message: {:?}", why);
+        }
+    } else {
+        println!("Error sending .help dm");
     }
 }
 
@@ -186,16 +210,16 @@ pub(crate) async fn handle_start(context: Context, msg: Message) {
         send_simple_tagged_msg(&context, &msg, " users that are not in the queue cannot start the match", &msg.author).await;
         return;
     }
-    // if user_queue.len() != 10 {
-    //     let response = MessageBuilder::new()
-    //         .mention(&msg.author)
-    //         .push(" the queue is not full yet")
-    //         .build();
-    //     if let Err(why) = msg.channel_id.say(&context.http, &response).await {
-    //         println!("Error sending message: {:?}", why);
-    //     }
-    //     return;
-    // }
+    if user_queue.len() != 10 {
+        let response = MessageBuilder::new()
+            .mention(&msg.author)
+            .push(" the queue is not full yet")
+            .build();
+        if let Err(why) = msg.channel_id.say(&context.http, &response).await {
+            println!("Error sending message: {:?}", why);
+        }
+        return;
+    }
     let user_queue_mention: String = user_queue
         .iter()
         .map(|user| format!("- <@{}>\n", user.id))
@@ -678,8 +702,6 @@ pub(crate) async fn handle_ready(context: &Context, msg: &Message) {
     // reset to queue state
     let user_queue: &mut Vec<User> = data.get_mut::<UserQueue>().unwrap();
     user_queue.clear();
-    let ready_queue: &mut Vec<User> = data.get_mut::<ReadyQueue>().unwrap();
-    ready_queue.clear();
     let draft: &mut Draft = &mut data.get_mut::<Draft>().unwrap();
     draft.team_a = vec![];
     draft.team_b = vec![];
@@ -688,6 +710,8 @@ pub(crate) async fn handle_ready(context: &Context, msg: &Message) {
     draft.current_picker = None;
     let bot_state: &mut StateContainer = &mut data.get_mut::<BotState>().unwrap();
     bot_state.state = State::Queue;
+    let queue_msgs: &mut HashMap<u64, String> = &mut data.get_mut::<QueueMessages>().unwrap();
+    queue_msgs.clear();
 }
 
 pub(crate) async fn handle_cancel(context: Context, msg: Message) {
@@ -698,8 +722,6 @@ pub(crate) async fn handle_cancel(context: Context, msg: Message) {
         send_simple_tagged_msg(&context, &msg, " command only valid during `.start` process", &msg.author).await;
         return;
     }
-    let ready_queue: &mut Vec<User> = data.get_mut::<ReadyQueue>().unwrap();
-    ready_queue.clear();
     let draft: &mut Draft = &mut data.get_mut::<Draft>().unwrap();
     draft.team_a = vec![];
     draft.team_b = vec![];

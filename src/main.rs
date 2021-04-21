@@ -62,11 +62,11 @@ struct Handler;
 
 struct UserQueue;
 
-struct ReadyQueue;
-
 struct RiotIdCache;
 
 struct TeamNameCache;
+
+struct QueueMessages;
 
 struct BotState;
 
@@ -74,10 +74,6 @@ struct Maps;
 
 
 impl TypeMapKey for UserQueue {
-    type Value = Vec<User>;
-}
-
-impl TypeMapKey for ReadyQueue {
     type Value = Vec<User>;
 }
 
@@ -89,7 +85,7 @@ impl TypeMapKey for RiotIdCache {
     type Value = HashMap<u64, String>;
 }
 
-impl TypeMapKey for TeamNameCache{
+impl TypeMapKey for TeamNameCache {
     type Value = HashMap<u64, String>;
 }
 
@@ -103,6 +99,10 @@ impl TypeMapKey for Maps {
 
 impl TypeMapKey for Draft {
     type Value = Draft;
+}
+
+impl TypeMapKey for QueueMessages {
+    type Value = HashMap<u64, String>;
 }
 
 enum Command {
@@ -208,7 +208,7 @@ async fn main() -> () {
     {
         let mut data = client.data.write().await;
         data.insert::<UserQueue>(Vec::new());
-        data.insert::<ReadyQueue>(Vec::new());
+        data.insert::<QueueMessages>(HashMap::new());
         data.insert::<Config>(config);
         data.insert::<RiotIdCache>(read_riot_ids().await.unwrap());
         data.insert::<TeamNameCache>(read_teamnames().await.unwrap());

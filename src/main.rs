@@ -19,19 +19,21 @@ mod bot_service;
 #[derive(Serialize, Deserialize)]
 struct Config {
     discord: DiscordConfig,
-    autoclear_hour: u32,
+    #[serde(default)]
+    autoclear_hour: Option<u32>,
+    #[serde(default)]
+    post_setup_msg: Option<String>,
 }
 
 #[derive(Serialize, Deserialize)]
 struct DiscordConfig {
     token: String,
-    admin_role_id: u64,
-    team_a_channel_id: u64,
-    team_b_channel_id: u64,
-    emote_ct_id: u64,
-    emote_t_id: u64,
-    emote_ct_name: String,
-    emote_t_name: String,
+    #[serde(default)]
+    admin_role_id: Option<u64>,
+    #[serde(default)]
+    team_a_channel_id: Option<u64>,
+    #[serde(default)]
+    team_b_channel_id: Option<u64>,
 }
 
 #[derive(PartialEq)]
@@ -198,8 +200,7 @@ impl EventHandler for Handler {
 async fn main() -> () {
     let config = read_config().await.unwrap();
     let token = &config.discord.token;
-    let framework = StandardFramework::new()
-        .configure(|c| c.prefix("~"));
+    let framework = StandardFramework::new();
     let mut client = Client::builder(&token)
         .event_handler(Handler {})
         .framework(framework)
@@ -265,24 +266,26 @@ async fn read_maps() -> Result<Vec<String>, serde_json::Error> {
 }
 
 async fn autoclear_queue(context: &Context) {
-    println!("Autoclear feature started");
-    loop {
-        let autoclear_hour = get_autoclear_hour(context).await;
-        let current: DateTime<Local> = Local::now();
-        let mut autoclear: DateTime<Local> = Local.ymd(current.year(), current.month(), current.day())
-            .and_hms(autoclear_hour, 0, 0);
-        if autoclear.signed_duration_since(current).num_milliseconds() < 0 { autoclear = autoclear + ChronoDuration::days(1) }
-        let time_between: ChronoDuration = autoclear.signed_duration_since(current);
-        task::sleep(CoreDuration::from_millis(time_between.num_milliseconds() as u64)).await;
-        {
-            let mut data = context.data.write().await;
-            let user_queue: &mut Vec<User> = &mut data.get_mut::<UserQueue>().unwrap();
-            user_queue.clear();
+    let autoclear_hour_prop = get_autoclear_hour(context).await;
+    if let Some(autoclear_hour) = autoclear_hour_prop {
+        println!("Autoclear feature started");
+        loop {
+            let current: DateTime<Local> = Local::now();
+            let mut autoclear: DateTime<Local> = Local.ymd(current.year(), current.month(), current.day())
+                .and_hms(autoclear_hour, 0, 0);
+            if autoclear.signed_duration_since(current).num_milliseconds() < 0 { autoclear = autoclear + ChronoDuration::days(1) }
+            let time_between: ChronoDuration = autoclear.signed_duration_since(current);
+            task::sleep(CoreDuration::from_millis(time_between.num_milliseconds() as u64)).await;
+            {
+                let mut data = context.data.write().await;
+                let user_queue: &mut Vec<User> = &mut data.get_mut::<UserQueue>().unwrap();
+                user_queue.clear();
+            }
         }
     }
 }
 
-async fn get_autoclear_hour(client: &Context) -> u32 {
+async fn get_autoclear_hour(client: &Context) -> Option<u32> {
     let data = client.data.write().await;
     let config: &Config = &data.get::<Config>().unwrap();
     config.autoclear_hour

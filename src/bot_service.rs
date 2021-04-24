@@ -7,7 +7,6 @@ use regex::Regex;
 use serenity::client::Context;
 use serenity::model::channel::{Message, ReactionType};
 use serenity::model::guild::GuildContainer;
-use serenity::model::id::EmojiId;
 use serenity::model::user::User;
 use serenity::prelude::TypeMap;
 use serenity::utils::MessageBuilder;
@@ -66,13 +65,12 @@ pub(crate) async fn handle_join(context: &Context, msg: &Message, author: &User)
         println!("Error sending message: {:?}", why);
     }
     let queued_msgs: &mut HashMap<u64, String> = data.get_mut::<QueueMessages>().unwrap();
-    let start_byte = &msg.content.find("\"");
-    let end_byte = &msg.content.rfind("\"");
-    if start_byte.is_some() && (end_byte.is_some() && (end_byte.unwrap() != start_byte.unwrap())) {
-        let start = start_byte.unwrap();
-        let mut end = end_byte.unwrap();
+    let quote_regex = Regex::new("[\"'”“](.*?)[\"'”“]").unwrap();
+    if let Some(mat) = quote_regex.find(&msg.content) {
+        let start = mat.start();
+        let mut end = mat.end();
         end = end.min(start + 50);
-        queued_msgs.insert(*msg.author.id.as_u64(), String::from(&msg.content[start + 1..end]));
+        queued_msgs.insert(*msg.author.id.as_u64(), String::from(msg.content[start..end].trim()));
     }
 }
 
@@ -158,7 +156,7 @@ pub(crate) async fn handle_help(context: Context, msg: Message) {
 `.teamname` - Sets a custom team name when you are a captain i.e. `.teamname Your Team Name`
 _These are commands used during the `.start` process:_
 `.captain` - Add yourself as a captain.
-`.pick` - If you are a captain, this is used to pick a player
+`.pick` - If you are a captain, this is used to pick a player by tagging them i.e. `.pick @Martige`
 ");
     let admin_commands = String::from("
 _These are privileged admin commands:_
@@ -416,16 +414,7 @@ pub(crate) async fn handle_pick(context: Context, msg: Message) {
         let captain_b = draft.captain_b.clone().unwrap();
         let bot_state: &mut StateContainer = &mut data.get_mut::<BotState>().unwrap();
         bot_state.state = State::SidePick;
-        let sidepick_msg = send_simple_tagged_msg(&context, &msg, " type `.defense` or `.attack` to pick a starting side.", &captain_b).await;
-        let config: &mut Config = &mut data.get_mut::<Config>().unwrap();
-        if let Some(msg) = sidepick_msg {
-            if let Err(why) = msg.react(&context.http, ReactionType::Custom { animated: false, id: EmojiId(config.discord.emote_ct_id), name: Some(String::from(&config.discord.emote_ct_name)) }).await {
-                println!("Error reacting with custom emoji: {:?}", why)
-            };
-            if let Err(why) = msg.react(&context.http, ReactionType::Custom { animated: false, id: EmojiId(config.discord.emote_t_id), name: Some(String::from(&config.discord.emote_t_name)) }).await {
-                println!("Error reacting with custom emoji: {:?}", why)
-            };
-        }
+        send_simple_tagged_msg(&context, &msg, " type `.defense` or `.attack` to pick a starting side.", &captain_b).await;
     }
 }
 
@@ -685,18 +674,19 @@ pub(crate) async fn handle_ready(context: &Context, msg: &Message) {
         println!("Error sending message: {:?}", why);
     }
     let config: &Config = &data.get::<Config>().unwrap();
-    for user in &draft.team_a {
-        if let Some(guild) = &msg.guild(&context.cache).await {
-            if let Err(why) = guild.move_member(&context.http, user.id, config.discord.team_a_channel_id).await {
-                println!("Cannot move user: {:?}", why);
-            }
+    if let Some(team_a_channel_id) = config.discord.team_a_channel_id {
+        for user in &draft.team_a {
+            move_user(msg, user, team_a_channel_id, &context).await;
         }
     }
-    for user in &draft.team_b {
-        if let Some(guild) = &msg.guild(&context.cache).await {
-            if let Err(why) = guild.move_member(&context.http, user.id, config.discord.team_b_channel_id).await {
-                println!("Cannot move user: {:?}", why);
-            }
+    if let Some(team_b_channel_id) = config.discord.team_b_channel_id {
+        for user in &draft.team_b {
+            move_user(msg, user, team_b_channel_id, &context).await;
+        }
+    }
+    if let Some(post_start_msg) = &config.post_setup_msg {
+        if let Err(why) = msg.channel_id.say(&context.http, &post_start_msg).await {
+            println!("Error sending message: {:?}", why);
         }
     }
     // reset to queue state
@@ -777,22 +767,33 @@ pub(crate) async fn send_simple_tagged_msg(context: &Context, msg: &Message, tex
 pub(crate) async fn admin_check(context: &Context, msg: &Message, print_msg: bool) -> bool {
     let data = context.data.write().await;
     let config: &Config = data.get::<Config>().unwrap();
-    let role_name = context.cache.role(msg.guild_id.unwrap(), config.discord.admin_role_id).await.unwrap().name;
-    if msg.author.has_role(&context.http, GuildContainer::from(msg.guild_id.unwrap()), config.discord.admin_role_id).await.unwrap_or_else(|_| false) {
-        true
-    } else {
-        if print_msg {
-            let response = MessageBuilder::new()
-                .mention(&msg.author)
-                .push(" this command requires the '")
-                .push(role_name)
-                .push("' role.")
-                .build();
-            if let Err(why) = msg.channel_id.say(&context.http, &response).await {
-                println!("Error sending message: {:?}", why);
+    if let Some(admin_role_id) = config.discord.admin_role_id {
+        let role_name = context.cache.role(msg.guild_id.unwrap(), admin_role_id).await.unwrap().name;
+        return if msg.author.has_role(&context.http, GuildContainer::from(msg.guild_id.unwrap()), admin_role_id).await.unwrap_or_else(|_| false) {
+            true
+        } else {
+            if print_msg {
+                let response = MessageBuilder::new()
+                    .mention(&msg.author)
+                    .push(" this command requires the '")
+                    .push(role_name)
+                    .push("' role.")
+                    .build();
+                if let Err(why) = msg.channel_id.say(&context.http, &response).await {
+                    println!("Error sending message: {:?}", why);
+                }
             }
+            false
+        };
+    }
+    true
+}
+
+pub(crate) async fn move_user(msg: &Message, user: &User, channel_id: u64, context: &Context) {
+    if let Some(guild) = &msg.guild(&context.cache).await {
+        if let Err(why) = guild.move_member(&context.http, user.id, channel_id).await {
+            println!("Cannot move user: {:?}", why);
         }
-        false
     }
 }
 

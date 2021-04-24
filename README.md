@@ -33,7 +33,7 @@ discord:
 
 ## Commands
 
-`.join` - Join the queue, add an optional message in quotes (max 50 characters) i.e. `.join \"available at 9pm\"`
+`.join` - Join the queue, add an optional message in quotes (max 50 characters) i.e. `.join "available at 9pm"`
 
 `.leave` - Leave the queue
 

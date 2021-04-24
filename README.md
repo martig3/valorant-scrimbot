@@ -51,6 +51,10 @@ _These are commands used during the `.start` process:_
 
 `.pick` - If you are a captain, this is used to pick a player by tagging them i.e. `.pick @Martige`
 
+`.defense` - An option to pick the defense side after the draft (if you are Captain B)
+
+`.attack` - An option to pick the attack side after the draft (if you are Captain B)
+
 ### Admin Commands - restricted to an 'admin' role if provided in config
 
 `.start` - Start the match setup process

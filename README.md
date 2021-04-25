@@ -33,7 +33,7 @@ discord:
 
 ## Commands
 
-`.join` - Join the queue, add an optional message in quotes (max 50 characters) i.e. `.join \"available at 9pm\"`
+`.join` - Join the queue, add an optional message in quotes (max 50 characters) i.e. `.join "available at 9pm"`
 
 `.leave` - Leave the queue
 
@@ -50,6 +50,10 @@ _These are commands used during the `.start` process:_
 `.captain` - Add yourself as a captain.
 
 `.pick` - If you are a captain, this is used to pick a player by tagging them i.e. `.pick @Martige`
+
+`.defense` - An option to pick the defense side after the draft (if you are Captain B)
+
+`.attack` - An option to pick the attack side after the draft (if you are Captain B)
 
 ### Admin Commands - restricted to an 'admin' role if provided in config
 

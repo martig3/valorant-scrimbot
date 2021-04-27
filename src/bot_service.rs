@@ -65,7 +65,7 @@ pub(crate) async fn handle_join(context: &Context, msg: &Message, author: &User)
         println!("Error sending message: {:?}", why);
     }
     let queued_msgs: &mut HashMap<u64, String> = data.get_mut::<QueueMessages>().unwrap();
-    let quote_regex = Regex::new("[\"'”“](.*?)[\"'”“]").unwrap();
+    let quote_regex = Regex::new("[\"”“](.*?)[\"”“]").unwrap();
     if let Some(mat) = quote_regex.find(&msg.content) {
         let start = mat.start();
         let mut end = mat.end();

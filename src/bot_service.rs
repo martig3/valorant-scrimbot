@@ -657,11 +657,11 @@ pub(crate) async fn handle_ready(context: &Context, msg: &Message) {
         .unwrap_or(&draft.captain_b.as_ref().unwrap().name);
     let team_a: String = draft.team_a
         .iter()
-        .map(|user| format!("- @{}: {}\n", &user.name, riot_id_cache.get(user.id.as_u64()).unwrap()))
+        .map(|user| format!("- @{}: `{}`\n", &user.name, riot_id_cache.get(user.id.as_u64()).unwrap()))
         .collect();
     let team_b: String = draft.team_b
         .iter()
-        .map(|user| format!("- @{}: {}\n", &user.name, riot_id_cache.get(user.id.as_u64()).unwrap()))
+        .map(|user| format!("- @{}: `{}`\n", &user.name, riot_id_cache.get(user.id.as_u64()).unwrap()))
         .collect();
     let response = MessageBuilder::new()
         .push_bold_line(format!("Team {}:", team_a_name))

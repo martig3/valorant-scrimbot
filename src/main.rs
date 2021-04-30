@@ -276,9 +276,7 @@ async fn autoclear_queue(context: &Context) {
                 let user_queue: &mut Vec<User> = &mut data.get_mut::<UserQueue>().unwrap();
                 user_queue.clear();
                 let queued_msgs: &mut HashMap<u64, String> = data.get_mut::<QueueMessages>().unwrap();
-                if queued_msgs.get(&msg.author.id.as_u64()).is_some() {
-                    queued_msgs.remove(&msg.author.id.as_u64());
-                }
+                queued_msgs.clear();
             }
         }
     }

@@ -19,20 +19,15 @@ mod bot_service;
 #[derive(Serialize, Deserialize)]
 struct Config {
     discord: DiscordConfig,
-    #[serde(default)]
     autoclear_hour: Option<u32>,
-    #[serde(default)]
     post_setup_msg: Option<String>,
 }
 
 #[derive(Serialize, Deserialize)]
 struct DiscordConfig {
     token: String,
-    #[serde(default)]
     admin_role_id: Option<u64>,
-    #[serde(default)]
     team_a_channel_id: Option<u64>,
-    #[serde(default)]
     team_b_channel_id: Option<u64>,
 }
 
@@ -280,6 +275,10 @@ async fn autoclear_queue(context: &Context) {
                 let mut data = context.data.write().await;
                 let user_queue: &mut Vec<User> = &mut data.get_mut::<UserQueue>().unwrap();
                 user_queue.clear();
+                let queued_msgs: &mut HashMap<u64, String> = data.get_mut::<QueueMessages>().unwrap();
+                if queued_msgs.get(&msg.author.id.as_u64()).is_some() {
+                    queued_msgs.remove(&msg.author.id.as_u64());
+                }
             }
         }
     }

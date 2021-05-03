@@ -29,6 +29,7 @@ discord:
   admin_role_id: <a discord server role id> -- optional, but highly recommended!!!
   team_a_channel_id: <a discord channel id> -- optional
   team_b_channel_id: <a discord channel id> -- optional
+  assign_role_id: <a dicord role id to assign for user on queue join> -- optional
 ```
 
 ## Commands

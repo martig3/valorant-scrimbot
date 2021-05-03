@@ -29,6 +29,7 @@ struct DiscordConfig {
     admin_role_id: Option<u64>,
     team_a_channel_id: Option<u64>,
     team_b_channel_id: Option<u64>,
+    assign_role_id: Option<u64>,
 }
 
 #[derive(PartialEq)]

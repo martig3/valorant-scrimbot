@@ -140,6 +140,7 @@ impl FromStr for Command {
             ".addmap" => Ok(Command::ADDMAP),
             ".cancel" => Ok(Command::CANCEL),
             ".captain" => Ok(Command::CAPTAIN),
+            ".teamname" => Ok(Command::TEAMNAME),
             ".pick" => Ok(Command::PICK),
             ".defense" => Ok(Command::DEFENSE),
             ".attack" => Ok(Command::ATTACK),

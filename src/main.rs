@@ -106,7 +106,7 @@ impl TypeMapKey for QueueMessages {
 enum Command {
     JOIN,
     LEAVE,
-    LIST,
+    QUEUE,
     START,
     RIOTID,
     MAPS,
@@ -127,12 +127,12 @@ enum Command {
 
 impl FromStr for Command {
     type Err = ();
-
     fn from_str(input: &str) -> Result<Command, Self::Err> {
         match input {
-            ".join" => Ok(Command::JOIN),
-            ".leave" => Ok(Command::LEAVE),
-            ".list" => Ok(Command::LIST),
+            "." => Ok(Command::UNKNOWN),
+            _ if ".join".starts_with(input) => Ok(Command::JOIN),
+            _ if ".leave".starts_with(input) => Ok(Command::LEAVE),
+            _ if ".queue".starts_with(input) => Ok(Command::QUEUE),
             ".start" => Ok(Command::START),
             ".riotid" => Ok(Command::RIOTID),
             ".maps" => Ok(Command::MAPS),
@@ -140,7 +140,6 @@ impl FromStr for Command {
             ".addmap" => Ok(Command::ADDMAP),
             ".cancel" => Ok(Command::CANCEL),
             ".captain" => Ok(Command::CAPTAIN),
-            ".teamname" => Ok(Command::TEAMNAME),
             ".pick" => Ok(Command::PICK),
             ".defense" => Ok(Command::DEFENSE),
             ".attack" => Ok(Command::ATTACK),
@@ -167,7 +166,7 @@ impl EventHandler for Handler {
         match command {
             Command::JOIN => bot_service::handle_join(&context, &msg, &msg.author).await,
             Command::LEAVE => bot_service::handle_leave(context, msg).await,
-            Command::LIST => bot_service::handle_list(context, msg).await,
+            Command::QUEUE => bot_service::handle_list(context, msg).await,
             Command::START => bot_service::handle_start(context, msg).await,
             Command::RIOTID => bot_service::handle_riotid(context, msg).await,
             Command::MAPS => bot_service::handle_map_list(context, msg).await,

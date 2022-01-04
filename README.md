@@ -38,7 +38,7 @@ discord:
 
 `.leave` - Leave the queue
 
-`.list` - List all users in the queue
+`.queue` - List all users in the queue
 
 `.riotid` - Set your RiotId i.e. `.riotid Martige#NA1` (required before joining queue)
 

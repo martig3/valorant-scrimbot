@@ -164,7 +164,7 @@ pub(crate) async fn handle_help(context: Context, msg: Message) {
     let mut commands = String::from("
 `.join` - Join the queue, add a message in quotes (max 50 char) i.e. `.join \"available at 9pm\"`
 `.leave` - Leave the queue
-`.list` - List all users in the queue
+`.queue` - List all users in the queue
 `.riotid` - Set your riotid i.e. `.riotid Martige#NA1`
 `.maps` - Lists all maps available for map vote
 `.teamname` - Sets a custom team name when you are a captain i.e. `.teamname Your Team Name`

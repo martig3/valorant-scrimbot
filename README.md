@@ -2,18 +2,6 @@
 
 Simple Discord bot for managing & organizing a queue for 10 man scrims in Valorant
 
-## Features
-Manages a 10 person queue, then starts a map vote followed by a draft. 
-At the end of the setup, it prints out everyone's RiotId to help facilitate joining a custom lobby.
-### Example Screenshots
-#### `.join` the queue
-![preview](https://i.imgur.com/8xsKCJh.png)
-#### `.start` command will first initiate a map vote
-![preview](https://i.imgur.com/YnhO0FA.png)
-#### Draft Phase - Captains are volunteered and teams are picked
-![preview](https://i.imgur.com/fx6aAWe.png)
-#### After the draft is completed, Captain B chooses what side to start on
-![preview](https://i.imgur.com/NNoFNf9.png)
 ## Setup
 
 Download the latest release and place it inside a new folder. Inside this folder create a `config.yaml` file. 
@@ -33,9 +21,23 @@ discord:
   assign_role_id: <a dicord role id to assign for user on queue join> -- optional
 ```
 
-Start the bot via appropriate release binary (or clone & build yourself if you want) and navigate to the following url to add your bot to your server: `https://discord.com/api/oauth2/authorize?client_id=<your_bot_clientid>&permissions=16780352&scope=bot`
+Start the bot via appropriate release binary (or clone & build yourself if you want) and navigate to the following url - **make sure to insert your bot's client id in this url** - to add the bot to your server: `https://discord.com/api/oauth2/authorize?client_id=<your_bot_clientid>&permissions=16780352&scope=bot`
 
 **Note:** Make sure to only allow the bot to listen/read messages in one channel only.
+
+## Features
+Manages a 10 person queue, then starts a map vote followed by a draft. 
+At the end of the setup, it prints out everyone's RiotId to help facilitate joining a custom lobby.
+### Example Screenshots
+#### `.join` the queue
+![preview](https://i.imgur.com/8xsKCJh.png)
+#### `.start` command will first initiate a map vote
+![preview](https://i.imgur.com/YnhO0FA.png)
+#### Draft Phase - Captains are volunteered and teams are picked
+![preview](https://i.imgur.com/fx6aAWe.png)
+#### After the draft is completed, Captain B chooses what side to start on
+![preview](https://i.imgur.com/NNoFNf9.png)
+
 
 ## Commands
 

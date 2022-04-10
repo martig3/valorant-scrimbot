@@ -16,9 +16,10 @@ At the end of the setup, it prints out everyone's RiotId to help facilitate join
 ![preview](https://i.imgur.com/NNoFNf9.png)
 ## Setup
 
-No CI/CD yet so clone the repo, create a `config.yaml` file (see example below) and run using standard `cargo run`
+Download the latest release and place it inside a new folder. Inside this folder create a `config.yaml` file. 
 
-**Note:** Make sure to only allow the bot to listen/read messages in one channel only. 
+**Note:** Channel & role ids can be found by enabling discord developer mode.
+
 ### Example config.yaml
 
 ```yaml
@@ -31,6 +32,10 @@ discord:
   team_b_channel_id: <a discord channel id> -- optional
   assign_role_id: <a dicord role id to assign for user on queue join> -- optional
 ```
+
+Start the bot via appropriate release binary (or clone & build yourself if you want) and navigate to the following url to add your bot to your server: `https://discord.com/api/oauth2/authorize?client_id=<your_bot_clientid>&permissions=16780352&scope=bot`
+
+**Note:** Make sure to only allow the bot to listen/read messages in one channel only.
 
 ## Commands
 

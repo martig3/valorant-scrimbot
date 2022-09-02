@@ -226,14 +226,14 @@ async fn main() -> () {
 }
 
 async fn read_config() -> Result<Config, serde_yaml::Error> {
-    let yaml = std::fs::read_to_string("config.yaml").unwrap();
+    let yaml = std::fs::read_to_string("/data/config.yaml").unwrap();
     let config: Config = serde_yaml::from_str(&yaml)?;
     Ok(config)
 }
 
 async fn read_riot_ids() -> Result<HashMap<u64, String>, serde_json::Error> {
-    if std::fs::read("riot_ids.json").is_ok() {
-        let json_str = std::fs::read_to_string("riot_ids.json").unwrap();
+    if std::fs::read("/data/riot_ids.json").is_ok() {
+        let json_str = std::fs::read_to_string("/data/riot_ids.json").unwrap();
         let json = serde_json::from_str(&json_str).unwrap();
         Ok(json)
     } else {
@@ -242,8 +242,8 @@ async fn read_riot_ids() -> Result<HashMap<u64, String>, serde_json::Error> {
 }
 
 async fn read_teamnames() -> Result<HashMap<u64, String>, serde_json::Error> {
-    if std::fs::read("teamnames.json").is_ok() {
-        let json_str = std::fs::read_to_string("teamnames.json").unwrap();
+    if std::fs::read("/data/teamnames.json").is_ok() {
+        let json_str = std::fs::read_to_string("/data/teamnames.json").unwrap();
         let json = serde_json::from_str(&json_str).unwrap();
         Ok(json)
     } else {
@@ -252,8 +252,8 @@ async fn read_teamnames() -> Result<HashMap<u64, String>, serde_json::Error> {
 }
 
 async fn read_maps() -> Result<Vec<String>, serde_json::Error> {
-    if std::fs::read("maps.json").is_ok() {
-        let json_str = std::fs::read_to_string("maps.json").unwrap();
+    if std::fs::read("/data/maps.json").is_ok() {
+        let json_str = std::fs::read_to_string("/data/maps.json").unwrap();
         let json = serde_json::from_str(&json_str).unwrap();
         Ok(json)
     } else {

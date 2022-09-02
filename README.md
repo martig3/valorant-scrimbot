@@ -4,7 +4,7 @@ Simple Discord bot for managing & organizing a queue for 10 man scrims in Valora
 
 ## Setup
 
-Download the latest release and place it inside a new folder. Inside this folder create a `config.yaml` file. 
+Download the latest release and place it inside a new folder. Create a `/data` folder. Inside this folder data folder create a `config.yaml` file. 
 
 **Note:** Channel & role ids can be found by enabling discord developer mode.
 

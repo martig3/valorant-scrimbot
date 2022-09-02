@@ -614,7 +614,7 @@ pub(crate) async fn handle_add_map(context: Context, msg: Message) {
         return;
     }
     maps.push(String::from(&map_name));
-    write_to_file(String::from("maps.json"), serde_json::to_string(maps).unwrap()).await;
+    write_to_file(String::from("/data/maps.json"), serde_json::to_string(maps).unwrap()).await;
     let response = MessageBuilder::new()
         .mention(&msg.author)
         .push(" added map: `")
@@ -643,7 +643,7 @@ pub(crate) async fn handle_remove_map(context: Context, msg: Message) {
     }
     let index = maps.iter().position(|m| m == &map_name).unwrap();
     maps.remove(index);
-    write_to_file(String::from("maps.json"), serde_json::to_string(maps).unwrap()).await;
+    write_to_file(String::from("/data/maps.json"), serde_json::to_string(maps).unwrap()).await;
     let response = MessageBuilder::new()
         .mention(&msg.author)
         .push(" removed map: `")
@@ -763,7 +763,7 @@ pub(crate) async fn handle_teamname(context: Context, msg: Message) {
         return;
     }
     teamname_cache.insert(*msg.author.id.as_u64(), String::from(&teamname));
-    write_to_file(String::from("teamnames.json"), serde_json::to_string(teamname_cache).unwrap()).await;
+    write_to_file(String::from("/data/teamnames.json"), serde_json::to_string(teamname_cache).unwrap()).await;
     send_simple_tagged_msg(&context, &msg, &format!(" custom team name successfully set to `{}`", &teamname), &msg.author).await;
 }
 

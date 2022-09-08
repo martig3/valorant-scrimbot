@@ -21,7 +21,7 @@ discord:
   assign_role_id: <a dicord role id to assign for user on queue join> -- optional
 ```
 
-Start the bot via appropriate release binary (or clone & build yourself if you want) and navigate to the following url - **make sure to insert your bot's client id in this url** - to add the bot to your server: `https://discord.com/api/oauth2/authorize?client_id=<your_bot_clientid>&permissions=16780352&scope=bot`
+Start the bot via appropriate release binary (or clone & build yourself if you want) and navigate to the following url - **make sure to insert your bot's client id in this url** - to add the bot to your server: `https://discord.com/api/oauth2/authorize?client_id=<your bot's client id>&permissions=17124416&scope=bot%20applications.commands`
 
 **Note:** Make sure to only allow the bot to listen/read messages in one channel only.
 

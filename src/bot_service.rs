@@ -529,7 +529,7 @@ pub(crate) async fn handle_riotid(context: Context, msg: Message) {
         return;
     }
     riot_id_cache.insert(*msg.author.id.as_u64(), String::from(&riot_id_str));
-    write_to_file(String::from("riot_ids.json"), serde_json::to_string(riot_id_cache).unwrap()).await;
+    write_to_file(String::from("/data/riot_ids.json"), serde_json::to_string(riot_id_cache).unwrap()).await;
     let response = MessageBuilder::new()
         .push("Updated Riot id for ")
         .mention(&msg.author)
